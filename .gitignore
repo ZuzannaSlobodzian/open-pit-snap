@@ -5,3 +5,4 @@ __pycache__/
 .venv/
 .venvv/
 run.log
+*.egg-info/
