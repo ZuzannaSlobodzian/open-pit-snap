@@ -1,0 +1,7 @@
+token_asf
+gee_project
+__pycache__/
+*.pyc
+.venv/
+.venvv/
+run.log

@@ -1,0 +1,103 @@
+Metadata-Version: 2.4
+Name: open-pit-snap
+Version: 0.1.0
+Summary: Notebook-faithful SNAP/SAFE open-pit activity pipeline (CLI)
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.24
+Requires-Dist: scipy>=1.10
+Requires-Dist: rasterio>=1.3
+Requires-Dist: shapely>=2
+Requires-Dist: pyproj>=3.5
+Requires-Dist: PyYAML>=6
+Requires-Dist: matplotlib>=3.7
+Requires-Dist: asf_search>=8
+Requires-Dist: earthengine-api<2,>=1
+Requires-Dist: geemap>=0.30
+Requires-Dist: filelock>=3.12
+Provides-Extra: nisar
+Requires-Dist: h5py>=3.8; extra == "nisar"
+Requires-Dist: fsspec>=2023.1; extra == "nisar"
+Requires-Dist: aiohttp>=3.8; extra == "nisar"
+Requires-Dist: opera-utils[nisar]<0.26,>=0.25.9; extra == "nisar"
+Requires-Dist: rioxarray>=0.15; extra == "nisar"
+Requires-Dist: xarray>=2024.7; extra == "nisar"
+Requires-Dist: geopandas>=1.0; extra == "nisar"
+
+# open-pit-snap
+
+CLI port of Zuzanna Słobodzian’s `mine_analysis.ipynb`.
+
+- **Sentinel-1** (`period.start` before 2026-06-17, or `--sensor sentinel1`): full **SAFE SLC** + **SNAP / esa_snappy** (Orbit → TOPS Split → Back-Geocoding → Coherence **10×3** → Deburst → Merge → Multilook **6×1** → Terrain Correction → Subset).
+- **NISAR** (`period.start` on/after **2026-06-17**, or `--sensor nisar`): already-geocoded **L-band GSLC** subsets (no SAFE/SNAP), boxcar coherence **10×3**, then the same GEE/S2/NDAI activity maps.
+
+`init --sensor auto` (default) picks NISAR vs S1 from the period. Counterpart: `open-pit-baseline` (bursts + COMPASS / NISAR GSLC).
+
+## Requirements
+
+- Windows with **SNAP** + **esa_snappy** (Python linked to SNAP)
+- Python 3.9+
+- Earthdata token (`token_asf`) and Earth Engine project id (`gee_project`)
+
+```bash
+cd c:\space_technologies\Kopalnie\open-pit-snap
+python -m pip install -e .
+# NISAR path also needs:
+python -m pip install -e ".[nisar]"
+```
+
+Place `token_asf` / `gee_project` in this folder (or reuse the files from `open-pit-baseline` / `open-pit-mining\sar`).
+
+## Lubienica comparison project
+
+Already configured at `C:\SAR_MINING\lubienica_snap` for **2024-03-01 … 2024-05-10** (same window as the open-pit-baseline timing run).
+
+**Run on Windows Python with SNAP/esa_snappy** (not WSL — SNAP is a Windows install). In PowerShell:
+
+```powershell
+cd c:\space_technologies\Kopalnie\open-pit-snap
+python -m pip install -e .
+open-pit-snap pipeline --root C:\SAR_MINING\lubienica_snap
+```
+
+In **Git Bash** use a Windows-style path (forward slashes are fine):
+
+```bash
+open-pit-snap pipeline --root C:/SAR_MINING/lubienica_snap
+```
+
+In **WSL** use `/mnt/c/...`. Do not mix `/mnt/c` with Windows Python from Git Bash.
+
+Step by step:
+
+```powershell
+open-pit-snap catalog --root C:\SAR_MINING\lubienica_snap
+open-pit-snap coherence --root C:\SAR_MINING\lubienica_snap
+```
+
+(`coherence` downloads SAFE zips as needed and runs SNAP; activity maps are included in `pipeline`.)
+
+## Outputs (flat under the site root)
+
+```
+lubienica_snap/
+  project.yaml
+  raw/                 # SAFE .zip  or  NISAR GSLC .h5 subsets
+  coherence/
+    mine/              # GeoTIFF coherence (+ layover/shadow when SNAP)
+    reference/
+  activity_maps/       # PNG maps (notebook style)
+```
+
+Nothing else is written (`catalog` / `coherence_pairs.json` are not saved).
+
+## New site
+
+```powershell
+open-pit-snap init --root C:\SAR_MINING\my_mine `
+  --mine C:\path\to\mine.geojson `
+  --start 2024-03-01 --end 2024-05-10 `
+  --reference-center LON LAT `
+  --voivodeship mazowieckie
+open-pit-snap pipeline --root C:\SAR_MINING\my_mine
+```

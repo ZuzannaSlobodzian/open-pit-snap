@@ -1,0 +1,2 @@
+[console_scripts]
+open-pit-snap = open_pit_snap.cli:main
